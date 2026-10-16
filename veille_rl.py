@@ -1,0 +1,371 @@
+"""Veille des tournois Rocket League (start.gg + alertes Google) publiée sur GitHub Pages.
+
+Lancé chaque jour par GitHub Actions :
+- interroge start.gg (tournois en Belgique et, en option, en ligne) ;
+- lit les flux RSS des alertes Google listés dans flux.txt ;
+- génère site/index.html et met à jour data/deja_vus.json.
+
+Le token start.gg est lu dans la variable d'environnement STARTGG_TOKEN
+(secret du dépôt). Aucune dépendance externe : bibliothèque standard uniquement.
+"""
+import html
+import json
+import os
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+# ---------- Réglages ----------
+
+DOSSIER = Path(__file__).parent
+FICHIER_FLUX = DOSSIER / "flux.txt"
+ETAT = DOSSIER / "data" / "deja_vus.json"
+SORTIE = DOSSIER / "site" / "index.html"
+
+API = "https://api.start.gg/gql/alpha"
+FUSEAU = ZoneInfo("Europe/Brussels")
+JOURS = 45            # horizon de recherche start.gg, en jours
+JOURS_NOUVEAU = 7     # un élément reste « Nouveau » pendant ce nombre de jours
+INCLURE_EN_LIGNE = True  # False pour n'afficher que la Belgique
+
+# Tournois en ligne exclus si leur nom contient un de ces termes (mot entier, majuscules ou non)
+EXCLURE = ["NA", "OCE", "North America", "Oceania"]
+
+ATOM = "{http://www.w3.org/2005/Atom}"
+
+Q_JEU = """
+query($nom: String) {
+  videogames(query: {filter: {name: $nom}, perPage: 10}) {
+    nodes { id name }
+  }
+}"""
+
+Q_TOURNOIS = """
+query($filtre: TournamentPageFilter, $page: Int) {
+  tournaments(query: {perPage: 50, page: $page, sortBy: "startAt asc", filter: $filtre}) {
+    nodes { id name slug startAt isOnline city countryCode numAttendees }
+  }
+}"""
+
+
+# ---------- start.gg ----------
+
+def gql(token, query, variables):
+    req = urllib.request.Request(
+        API,
+        data=json.dumps({"query": query, "variables": variables}).encode(),
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=30) as r:
+        data = json.load(r)
+    if data.get("errors"):
+        raise RuntimeError(data["errors"])
+    return data["data"]
+
+
+def id_rocket_league(token):
+    noeuds = gql(token, Q_JEU, {"nom": "Rocket League"})["videogames"]["nodes"]
+    for n in noeuds:
+        if n["name"].lower() == "rocket league":
+            return n["id"]
+    raise RuntimeError(f"Rocket League introuvable : {noeuds}")
+
+
+MOTIF_EXCLU = re.compile(
+    r"(?<![A-Za-z0-9])(" + "|".join(re.escape(m) for m in EXCLURE) + r")(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
+
+
+def hors_zone(t):
+    return bool(MOTIF_EXCLU.search(t["name"]))
+
+
+def tournois(token, jeu_id, filtre_extra, pages=2):
+    debut = int(time.time())
+    filtre = {
+        "upcoming": True,
+        "videogameIds": [jeu_id],
+        "afterDate": debut,
+        "beforeDate": debut + JOURS * 86400,
+        **filtre_extra,
+    }
+    resultats = []
+    for page in range(1, pages + 1):
+        noeuds = gql(token, Q_TOURNOIS, {"filtre": filtre, "page": page})["tournaments"]["nodes"] or []
+        resultats += noeuds
+        if len(noeuds) < 50:
+            break
+    return resultats
+
+
+# ---------- Alertes Google (flux Atom) ----------
+
+def lire_liste_flux():
+    if not FICHIER_FLUX.exists():
+        return []
+    lignes = FICHIER_FLUX.read_text(encoding="utf-8").splitlines()
+    return [l.strip() for l in lignes if l.strip() and not l.strip().startswith("#")]
+
+
+def nettoyer(texte):
+    return html.unescape(re.sub(r"<[^>]+>", "", texte or "")).strip()
+
+
+PARAMS_PUB = re.compile(r"^(utm_|fbclid$|gclid$|ocid$|xtor$|at_)", re.IGNORECASE)
+
+
+def normaliser_url(url):
+    """Même article = même clé, même si l'adresse varie un peu d'un flux à l'autre."""
+    u = urllib.parse.urlparse(url)
+    hote = u.netloc.lower().removeprefix("www.").removeprefix("m.")
+    chemin = re.sub(r"/(amp/?)?$", "", u.path) or "/"
+    params = [(k, v) for k, v in urllib.parse.parse_qsl(u.query) if not PARAMS_PUB.match(k)]
+    requete = urllib.parse.urlencode(sorted(params))
+    return f"{hote}{chemin}" + (f"?{requete}" if requete else "")
+
+
+def normaliser_titre(titre):
+    titre = re.sub(r"\s+[-–|]\s+[^-–|]{2,40}$", "", titre)  # retire « - Nom du site » en fin de titre
+    return re.sub(r"[^a-z0-9à-ÿ]+", " ", titre.lower()).strip()
+
+
+def lire_flux(contenu):
+    resultats = []
+    for e in ET.fromstring(contenu).iter(f"{ATOM}entry"):
+        lien = e.find(f"{ATOM}link").get("href")
+        # Google enveloppe les liens dans une redirection : on récupère l'URL réelle
+        vrai = urllib.parse.parse_qs(urllib.parse.urlparse(lien).query).get("url", [lien])[0]
+        resultats.append({
+            "id": "alerte:" + normaliser_url(vrai),
+            "titre": nettoyer(e.findtext(f"{ATOM}title")),
+            "url": vrai,
+            "date": (e.findtext(f"{ATOM}published") or "")[:10],
+            "source": urllib.parse.urlparse(vrai).netloc,
+        })
+    return resultats
+
+
+def dedoublonner(liste):
+    """Un article remonté par plusieurs alertes n'apparaît qu'une fois :
+    même adresse (après nettoyage) ou même titre."""
+    par_id, titres_vus, resultat = set(), set(), []
+    for a in sorted(liste, key=lambda a: a["date"]):  # on garde la première apparition
+        titre = normaliser_titre(a["titre"])
+        if a["id"] in par_id or (titre and titre in titres_vus):
+            continue
+        par_id.add(a["id"])
+        titres_vus.add(titre)
+        resultat.append(a)
+    return sorted(resultat, key=lambda a: a["date"], reverse=True)
+
+
+def alertes():
+    tout = []
+    for flux in lire_liste_flux():
+        try:
+            with urllib.request.urlopen(flux, timeout=30) as r:
+                tout += lire_flux(r.read())
+        except Exception as exc:  # un flux en panne ne bloque pas le reste
+            print(f"::warning::Flux en erreur : {flux} ({exc})")
+    return dedoublonner(tout)
+
+
+# ---------- Mémoire des éléments déjà vus ----------
+
+def charger_etat():
+    if not ETAT.exists():
+        return None
+    return json.loads(ETAT.read_text(encoding="utf-8"))
+
+
+def mettre_a_jour_etat(etat, identifiants, aujourdhui):
+    """Retourne (nouvel état, ensemble des identifiants à marquer « Nouveau »)."""
+    premier_passage = etat is None
+    vus = dict((etat or {}).get("vus", {}))
+    limite = (aujourdhui - timedelta(days=JOURS_NOUVEAU)).isoformat()
+    # Au tout premier passage, rien n'est « nouveau » : tout est découvert d'un coup,
+    # donc on l'antidate pour qu'il ne soit pas marqué les jours suivants non plus.
+    date_ajout = limite if premier_passage else aujourdhui.isoformat()
+    for i in identifiants:
+        vus.setdefault(i, date_ajout)
+    nouveaux = {i for i in identifiants if vus[i] > limite}
+    # On oublie ce qui n'est plus affiché depuis longtemps pour garder le fichier léger
+    oubli = (aujourdhui - timedelta(days=120)).isoformat()
+    vus = {i: d for i, d in vus.items() if i in identifiants or d > oubli}
+    nouvel_etat = {"derniere_execution": datetime.now(FUSEAU).isoformat(timespec="minutes"),
+                   "vus": dict(sorted(vus.items()))}
+    return nouvel_etat, nouveaux
+
+
+# ---------- Page HTML ----------
+
+MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin",
+        "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+
+CSS = """
+:root { --fond:#0b1119; --carte:#141d29; --survol:#1b2737; --bord:#22303f;
+        --texte:#e8eef5; --doux:#8797ab; --bleu:#2f8cff; --orange:#ff8a1f; --vert:#22c3a6; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--fond); color:var(--texte);
+       font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.titre { font-family: "Rajdhani", system-ui, sans-serif; }
+header { background: linear-gradient(135deg, #10233d 0%, #0b1119 70%);
+         border-bottom:1px solid var(--bord); padding:28px 16px 22px; }
+.cadre { max-width:960px; margin:0 auto; }
+h1 { font-size:32px; font-weight:700; letter-spacing:.5px; margin:0; text-transform:uppercase; }
+h1 span { color:var(--bleu); }
+.maj { color:var(--doux); font-size:13px; margin-top:4px; }
+.tuiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-top:18px; }
+.tuile { background:var(--carte); border:1px solid var(--bord); border-radius:10px; padding:12px 14px; }
+.tuile .n { font-size:30px; font-weight:700; line-height:1; }
+.tuile .l { color:var(--doux); font-size:12px; text-transform:uppercase; letter-spacing:.8px; margin-top:4px; }
+.tuile.chaude { border-color:var(--orange); }
+.tuile.chaude .n { color:var(--orange); }
+main { padding:8px 16px 40px; }
+section { margin-top:26px; }
+h2 { font-size:19px; text-transform:uppercase; letter-spacing:1px; margin:0 0 10px; padding-left:10px;
+     border-left:3px solid var(--bleu); display:flex; align-items:center; gap:8px; }
+.compte { font-family: system-ui, sans-serif; background:var(--carte); border:1px solid var(--bord);
+          color:var(--doux); font-size:12px; border-radius:999px; padding:1px 8px; letter-spacing:0; }
+.carte { display:flex; align-items:center; gap:14px; background:var(--carte); border:1px solid var(--bord);
+         border-radius:10px; padding:10px 14px; margin-bottom:8px; color:inherit; text-decoration:none;
+         transition: background .15s, border-color .15s; }
+.carte:hover { background:var(--survol); border-color:var(--bleu); }
+.date { flex:0 0 52px; text-align:center; background:var(--fond); border-radius:8px; padding:6px 0; }
+.jour { display:block; font-size:22px; font-weight:700; line-height:1; }
+.mois { display:block; color:var(--doux); font-size:11px; text-transform:uppercase; }
+.infos { flex:1; min-width:0; }
+.nom { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.meta { color:var(--doux); font-size:13px; margin-top:2px; }
+.tags { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.tag { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; padding:3px 8px; border-radius:6px; }
+.nouveau { background:rgba(255,138,31,.15); color:var(--orange); }
+.ligne { background:rgba(34,195,166,.12); color:var(--vert); }
+.be { background:rgba(47,140,255,.15); color:var(--bleu); }
+.vide { color:var(--doux); font-style:italic; }
+footer { color:var(--doux); font-size:12px; text-align:center; padding:0 16px 28px; }
+footer a { color:var(--doux); }
+@media (max-width:560px) {
+  h1 { font-size:26px; }
+  .nom { white-space:normal; }
+  .tags { flex-direction:column; align-items:flex-end; }
+}
+"""
+
+
+def bloc_date(dt):
+    if not dt:
+        return "<div class='date'><span class='jour titre'>?</span></div>"
+    return (f"<div class='date'><span class='jour titre'>{dt.day:02d}</span>"
+            f"<span class='mois'>{MOIS[dt.month - 1]}</span></div>")
+
+
+def carte_tournoi(t, nouveaux):
+    dt = datetime.fromtimestamp(t["startAt"], FUSEAU) if t.get("startAt") else None
+    lieu = "En ligne" if t.get("isOnline") else (t.get("city") or "Belgique")
+    inscrits = t.get("numAttendees")
+    meta = " · ".join(x for x in [
+        dt.strftime("%H:%M") if dt else "",
+        html.escape(lieu),
+        f"{inscrits} inscrits" if inscrits else "",
+    ] if x)
+    tags = "<span class='tag nouveau'>Nouveau</span>" if str(t["id"]) in nouveaux else ""
+    tags += "<span class='tag ligne'>En ligne</span>" if t.get("isOnline") else "<span class='tag be'>BE</span>"
+    return (f"<a class='carte' href='https://www.start.gg/{html.escape(t['slug'])}'>{bloc_date(dt)}"
+            f"<div class='infos'><div class='nom'>{html.escape(t['name'])}</div>"
+            f"<div class='meta'>{meta}</div></div><div class='tags'>{tags}</div></a>")
+
+
+def carte_alerte(a, nouveaux):
+    try:
+        dt = datetime.strptime(a["date"], "%Y-%m-%d")
+    except ValueError:
+        dt = None
+    tags = "<span class='tag nouveau'>Nouveau</span>" if a["id"] in nouveaux else ""
+    return (f"<a class='carte' href='{html.escape(a['url'])}'>{bloc_date(dt)}"
+            f"<div class='infos'><div class='nom'>{html.escape(a['titre'])}</div>"
+            f"<div class='meta'>{html.escape(a['source'])}</div></div><div class='tags'>{tags}</div></a>")
+
+
+def section(titre, cartes, vide):
+    contenu = "".join(cartes) if cartes else f"<p class='vide'>{vide}</p>"
+    return (f"<section><h2 class='titre'>{titre} <span class='compte'>{len(cartes)}</span></h2>"
+            f"{contenu}</section>")
+
+
+def ecrire_page(belges, en_ligne, liste_alertes, nouveaux):
+    maj = datetime.now(FUSEAU).strftime("%d/%m/%Y à %H:%M")
+    stats = [("Belgique", len(belges))]
+    if INCLURE_EN_LIGNE:
+        stats.append(("En ligne", len(en_ligne)))
+    stats += [("Alertes", len(liste_alertes)), ("Nouveaux", len(nouveaux))]
+    tuiles = "".join(
+        f"<div class='tuile{' chaude' if nom == 'Nouveaux' and n else ''}'>"
+        f"<div class='n titre'>{n}</div><div class='l'>{nom}</div></div>"
+        for nom, n in stats
+    )
+    sections = [section("En Belgique", [carte_tournoi(t, nouveaux) for t in belges],
+                        "Aucun tournoi trouvé en Belgique pour l'instant.")]
+    if INCLURE_EN_LIGNE:
+        sections.append(section("En ligne · inscriptions ouvertes",
+                                [carte_tournoi(t, nouveaux) for t in en_ligne],
+                                "Aucun tournoi en ligne trouvé."))
+    sections.append(section("Actus (alertes Google)", [carte_alerte(a, nouveaux) for a in liste_alertes],
+                            "Rien dans les flux pour l'instant."))
+
+    SORTIE.parent.mkdir(parents=True, exist_ok=True)
+    SORTIE.write_text(f"""<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1119">
+<title>Tournois Rocket League · Belgique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<style>{CSS}</style></head><body>
+<header><div class="cadre">
+  <h1 class="titre">Tournois <span>Rocket League</span></h1>
+  <div class="maj">Mis à jour le {maj} · « Nouveau » = apparu ces {JOURS_NOUVEAU} derniers jours</div>
+  <div class="tuiles">{tuiles}</div>
+</div></header>
+<main><div class="cadre">
+{''.join(sections)}
+</div></main>
+<footer>Données : <a href="https://www.start.gg">start.gg</a> et Google Alerts · mise à jour automatique chaque jour</footer>
+</body></html>
+""", encoding="utf-8")
+
+
+# ---------- Programme principal ----------
+
+def main():
+    token = os.environ.get("STARTGG_TOKEN", "").strip()
+    if not token:
+        sys.exit("Variable STARTGG_TOKEN absente : ajoute le secret dans les réglages du dépôt.")
+
+    jeu_id = id_rocket_league(token)
+    belges = tournois(token, jeu_id, {"countryCode": "BE"})
+    en_ligne = []
+    if INCLURE_EN_LIGNE:
+        en_ligne = [t for t in tournois(token, jeu_id, {"regOpen": True}, pages=3)
+                    if t.get("isOnline") and not hors_zone(t)]
+    liste_alertes = alertes()
+
+    identifiants = {str(t["id"]) for t in belges + en_ligne} | {a["id"] for a in liste_alertes}
+    etat, nouveaux = mettre_a_jour_etat(charger_etat(), identifiants, date.today())
+
+    ecrire_page(belges, en_ligne, liste_alertes, nouveaux)
+    ETAT.parent.mkdir(parents=True, exist_ok=True)
+    ETAT.write_text(json.dumps(etat, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"{len(belges)} en Belgique, {len(en_ligne)} en ligne, "
+          f"{len(liste_alertes)} alertes, {len(nouveaux)} nouveaux.")
+
+
+if __name__ == "__main__":
+    main()

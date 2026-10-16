@@ -1,0 +1,52 @@
+name: Veille des tournois
+
+on:
+  schedule:
+    - cron: "17 5 * * *"   # chaque jour à 5h17 UTC (7h17 en été, 6h17 en hiver à Bruxelles)
+  workflow_dispatch:         # bouton « Run workflow » pour lancer à la main
+
+permissions:
+  contents: write   # enregistrer data/deja_vus.json
+  pages: write      # publier la page
+  id-token: write
+
+concurrency:
+  group: veille
+  cancel-in-progress: false
+
+jobs:
+  generer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Interroger start.gg et les alertes, générer la page
+        env:
+          STARTGG_TOKEN: ${{ secrets.STARTGG_TOKEN }}
+        run: python veille_rl.py
+
+      - name: Enregistrer la mémoire des éléments déjà vus
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/deja_vus.json
+          git diff --cached --quiet || git commit -m "Mise à jour de la veille"
+          git push
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  publier:
+    needs: generer
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - id: deploiement
+        uses: actions/deploy-pages@v4

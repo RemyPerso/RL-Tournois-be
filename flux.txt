@@ -1,0 +1,9 @@
+# Flux RSS des alertes Google, une adresse par ligne.
+# Les lignes qui commencent par # sont ignorées.
+# Dans Google Alerts : modifier l'alerte > Afficher les options > Envoyer à : Flux RSS,
+# puis clic droit sur l'icône RSS > Copier l'adresse du lien.
+
+https://www.google.be/alerts/feeds/14343461689789830274/15960803801732872763
+https://www.google.be/alerts/feeds/14343461689789830274/11505696877045601721
+https://www.google.be/alerts/feeds/14343461689789830274/7192407857164025516
+https://www.google.be/alerts/feeds/14343461689789830274/524634734270341980
