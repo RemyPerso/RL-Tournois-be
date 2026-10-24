@@ -322,7 +322,6 @@ h2 { font-size:19px; text-transform:uppercase; letter-spacing:1px; margin:0 0 10
 .filtres .bouton-cash { border:1px solid var(--bord); border-radius:8px; padding:8px 12px; }
 .filtres .bouton-cash[aria-pressed=true] { color:#ffc83d; border-color:#ffc83d; background:rgba(255,200,61,.12); }
 .filtres button:focus-visible { outline:2px solid var(--bleu); outline-offset:2px; }
-.filtres .aide { color:var(--doux); font-size:12px; margin-left:auto; }
 .actions { display:flex; align-items:center; gap:4px; }
 .coche { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--doux);
          border:1px solid var(--bord); border-radius:6px; padding:5px 9px; cursor:pointer; user-select:none; white-space:nowrap; }
@@ -352,7 +351,6 @@ footer a { color:var(--doux); }
   .nom { white-space:normal; }
   .tags { justify-content:flex-start; margin-left:66px; }
   .actions { margin-left:auto; }
-  .filtres .aide { display:none; }
 }
 """
 
@@ -596,7 +594,6 @@ def ecrire_page(belges, en_ligne, liste_alertes, nouveaux):
     <button type="button" data-format="1">1v1</button><button type="button" data-format="2">2v2</button><button type="button" data-format="3">3v3</button><button type="button" data-format="tous">Tous</button>
   </div>
   <button type="button" class="bouton-cash" aria-pressed="false">Cash prize</button>
-  <span class="aide">Sans format indiqué, un tournoi apparaît dans les trois.</span>
 </div>
 {''.join(sections[1:])}
 <p class="masques" id="masques" hidden><span></span> · <button type="button">Tout réafficher</button></p>
