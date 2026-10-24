@@ -8,6 +8,8 @@ Page mise à jour automatiquement chaque jour : tournois Rocket League à venir 
 - `veille_rl.py` interroge start.gg et les flux de `flux.txt`, puis génère la page.
 - `.github/workflows/veille.yml` le lance chaque matin et publie la page sur GitHub Pages.
 - `data/deja_vus.json` mémorise ce qui a déjà été vu, pour l'étiquette « Nouveau ».
+- Sur la page, la case « Inscrit » range un tournoi dans « Mes inscriptions » et la croix masque
+  un élément pour de bon. Ces choix sont mémorisés dans le navigateur (localStorage), pas dans le dépôt.
 
 ## Réglages
 

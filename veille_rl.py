@@ -234,10 +234,13 @@ h2 { font-size:19px; text-transform:uppercase; letter-spacing:1px; margin:0 0 10
      border-left:3px solid var(--bleu); display:flex; align-items:center; gap:8px; }
 .compte { font-family: system-ui, sans-serif; background:var(--carte); border:1px solid var(--bord);
           color:var(--doux); font-size:12px; border-radius:999px; padding:1px 8px; letter-spacing:0; }
-.carte { display:flex; align-items:center; gap:14px; background:var(--carte); border:1px solid var(--bord);
-         border-radius:10px; padding:10px 14px; margin-bottom:8px; color:inherit; text-decoration:none;
+.carte { display:flex; align-items:center; gap:10px; background:var(--carte); border:1px solid var(--bord);
+         border-radius:10px; padding:10px 10px 10px 14px; margin-bottom:8px;
          transition: background .15s, border-color .15s; }
 .carte:hover { background:var(--survol); border-color:var(--bleu); }
+.carte[hidden] { display:none; }
+.lien { flex:1; min-width:0; display:flex; align-items:center; gap:14px; color:inherit; text-decoration:none; }
+.lien:focus-visible { outline:2px solid var(--bleu); outline-offset:4px; border-radius:6px; }
 .date { flex:0 0 52px; text-align:center; background:var(--fond); border-radius:8px; padding:6px 0; }
 .jour { display:block; font-size:22px; font-weight:700; line-height:1; }
 .mois { display:block; color:var(--doux); font-size:11px; text-transform:uppercase; }
@@ -249,13 +252,35 @@ h2 { font-size:19px; text-transform:uppercase; letter-spacing:1px; margin:0 0 10
 .nouveau { background:rgba(255,138,31,.15); color:var(--orange); }
 .ligne { background:rgba(34,195,166,.12); color:var(--vert); }
 .be { background:rgba(47,140,255,.15); color:var(--bleu); }
+.actions { display:flex; align-items:center; gap:4px; }
+.coche { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--doux);
+         border:1px solid var(--bord); border-radius:6px; padding:5px 9px; cursor:pointer; user-select:none; white-space:nowrap; }
+.coche input { accent-color:var(--vert); margin:0; width:15px; height:15px; cursor:pointer; }
+.coche:hover { border-color:var(--vert); }
+.coche:has(input:checked) { color:var(--vert); border-color:var(--vert); background:rgba(34,195,166,.12); }
+.effacer { background:none; border:1px solid transparent; color:var(--doux); font-size:22px; line-height:1;
+           width:34px; height:34px; border-radius:6px; cursor:pointer; flex:0 0 auto; }
+.effacer:hover, .effacer:focus-visible { color:#ff6b6b; border-color:var(--bord); }
+.inscriptions h2 { border-left-color:var(--vert); }
+.inscriptions .nouveau { display:none; }
 .vide { color:var(--doux); font-style:italic; }
+.masques { margin-top:24px; text-align:center; font-size:13px; color:var(--doux); }
+.masques button, #annuler button { background:none; border:none; padding:0; font:inherit; cursor:pointer; color:var(--bleu); }
+.masques button { text-decoration:underline; }
+#annuler { position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:5; display:flex; gap:14px;
+           align-items:center; background:var(--survol); border:1px solid var(--bord); border-radius:10px;
+           padding:10px 16px; font-size:14px; box-shadow:0 8px 24px rgba(0,0,0,.45); white-space:nowrap; }
+#annuler[hidden] { display:none; }
+#annuler button { font-weight:700; }
 footer { color:var(--doux); font-size:12px; text-align:center; padding:0 16px 28px; }
 footer a { color:var(--doux); }
 @media (max-width:560px) {
   h1 { font-size:26px; }
+  .carte { flex-wrap:wrap; row-gap:8px; }
+  .lien { flex-basis:100%; }
   .nom { white-space:normal; }
-  .tags { flex-direction:column; align-items:flex-end; }
+  .tags { justify-content:flex-start; margin-left:66px; }
+  .actions { margin-left:auto; }
 }
 """
 
@@ -267,20 +292,32 @@ def bloc_date(dt):
             f"<span class='mois'>{MOIS[dt.month - 1]}</span></div>")
 
 
+def attr(valeur):
+    return html.escape(str(valeur), quote=True)
+
+
+BOUTON_EFFACER = ("<button type='button' class='effacer' aria-label='Masquer' "
+                  "title='Masquer définitivement'>×</button>")
+
+
 def carte_tournoi(t, nouveaux):
     dt = datetime.fromtimestamp(t["startAt"], FUSEAU) if t.get("startAt") else None
     lieu = "En ligne" if t.get("isOnline") else (t.get("city") or "Belgique")
     inscrits = t.get("numAttendees")
     meta = " · ".join(x for x in [
         dt.strftime("%H:%M") if dt else "",
-        html.escape(lieu),
+        lieu,
         f"{inscrits} inscrits" if inscrits else "",
     ] if x)
     tags = "<span class='tag nouveau'>Nouveau</span>" if str(t["id"]) in nouveaux else ""
     tags += "<span class='tag ligne'>En ligne</span>" if t.get("isOnline") else "<span class='tag be'>BE</span>"
-    return (f"<a class='carte' href='https://www.start.gg/{html.escape(t['slug'])}'>{bloc_date(dt)}"
+    return (f"<div class='carte' data-id='{attr(t['id'])}' data-ts='{t.get('startAt') or 0}'>"
+            f"<a class='lien' href='https://www.start.gg/{attr(t['slug'])}'>{bloc_date(dt)}"
             f"<div class='infos'><div class='nom'>{html.escape(t['name'])}</div>"
-            f"<div class='meta'>{meta}</div></div><div class='tags'>{tags}</div></a>")
+            f"<div class='meta'>{html.escape(meta)}</div></div></a>"
+            f"<div class='tags'>{tags}</div>"
+            f"<div class='actions'><label class='coche'><input type='checkbox' class='inscrit'> Inscrit</label>"
+            f"{BOUTON_EFFACER}</div></div>")
 
 
 def carte_alerte(a, nouveaux):
@@ -289,35 +326,152 @@ def carte_alerte(a, nouveaux):
     except ValueError:
         dt = None
     tags = "<span class='tag nouveau'>Nouveau</span>" if a["id"] in nouveaux else ""
-    return (f"<a class='carte' href='{html.escape(a['url'])}'>{bloc_date(dt)}"
+    return (f"<div class='carte' data-id='{attr(a['id'])}'>"
+            f"<a class='lien' href='{attr(a['url'])}'>{bloc_date(dt)}"
             f"<div class='infos'><div class='nom'>{html.escape(a['titre'])}</div>"
-            f"<div class='meta'>{html.escape(a['source'])}</div></div><div class='tags'>{tags}</div></a>")
+            f"<div class='meta'>{html.escape(a['source'])}</div></div></a>"
+            f"<div class='tags'>{tags}</div><div class='actions'>{BOUTON_EFFACER}</div></div>")
 
 
-def section(titre, cartes, vide):
-    contenu = "".join(cartes) if cartes else f"<p class='vide'>{vide}</p>"
-    return (f"<section><h2 class='titre'>{titre} <span class='compte'>{len(cartes)}</span></h2>"
-            f"{contenu}</section>")
+def section(cle, titre, cartes, vide, classe=""):
+    return (f"<section data-section='{cle}'{f' class={classe!r}' if classe else ''}>"
+            f"<h2 class='titre'>{titre} <span class='compte'>{len(cartes)}</span></h2>"
+            f"<div class='liste'>{''.join(cartes)}</div>"
+            f"<p class='vide'{' hidden' if cartes else ''}>{vide}</p></section>")
+
+
+# Inscriptions et masquages : mémorisés dans le navigateur (localStorage), la page restant statique.
+SCRIPT = """
+(() => {
+  const CLE_I = "rl-inscrits", CLE_M = "rl-masques";
+  const lire = (k) => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch (e) { return {}; } };
+  const ecrire = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const aujourdhui = () => new Date().toISOString().slice(0, 10);
+  let inscrits = lire(CLE_I), masques = lire(CLE_M);
+
+  // Nettoyage : tournois terminés (plus de 24 h après le début) et masquages de plus de 6 mois
+  const maintenant = Date.now() / 1000;
+  for (const [id, t] of Object.entries(inscrits)) if (t.ts && t.ts < maintenant - 86400) delete inscrits[id];
+  const limite = new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10);
+  for (const [id, d] of Object.entries(masques)) if (d < limite) delete masques[id];
+
+  const listeInscrits = document.querySelector("[data-section=inscrits] .liste");
+  const cartes = [...document.querySelectorAll("main .carte")];
+  const origine = new Map(cartes.map((c) => [c, c.parentElement]));
+  const presents = new Set(cartes.map((c) => c.dataset.id));
+
+  // Les tournois cochés encore présents sur start.gg : on rafraîchit leur copie mémorisée
+  for (const c of cartes) if (c.dataset.id in inscrits) inscrits[c.dataset.id] = { ts: +c.dataset.ts || 0, html: c.outerHTML };
+  ecrire(CLE_I, inscrits); ecrire(CLE_M, masques);
+
+  function afficher() {
+    document.querySelectorAll(".carte.copie").forEach((c) => c.remove());
+    for (const c of cartes) {
+      const id = c.dataset.id, inscrit = id in inscrits, masque = id in masques;
+      c.hidden = masque;
+      const coche = c.querySelector(".inscrit");
+      if (coche) coche.checked = inscrit;
+      (inscrit && !masque ? listeInscrits : origine.get(c)).append(c);
+    }
+    // Tournois cochés qui ne sont plus listés (inscriptions closes) : on les garde grâce à leur copie
+    for (const [id, t] of Object.entries(inscrits)) {
+      if (presents.has(id) || id in masques || !t.html) continue;
+      const modele = document.createElement("template");
+      modele.innerHTML = t.html.trim();
+      const c = modele.content.firstElementChild;
+      if (!c) continue;
+      c.classList.add("copie"); c.hidden = false;
+      c.querySelector(".inscrit").checked = true;
+      listeInscrits.append(c);
+    }
+    [...listeInscrits.children].sort((a, b) => (+a.dataset.ts || 0) - (+b.dataset.ts || 0))
+      .forEach((c) => listeInscrits.append(c));
+
+    for (const s of document.querySelectorAll("section[data-section]")) {
+      const n = s.querySelectorAll(".liste > .carte:not([hidden])").length;
+      s.querySelector(".compte").textContent = n;
+      s.querySelector(".vide").hidden = n > 0;
+      const tuile = document.querySelector(`.tuile[data-compte="${s.dataset.section}"] .n`);
+      if (tuile) tuile.textContent = n;
+    }
+    const nouveaux = document.querySelectorAll(
+      "section:not([data-section=inscrits]) .carte:not([hidden]) .nouveau").length;
+    const tuileN = document.querySelector(".tuile[data-compte=nouveaux]");
+    if (tuileN) { tuileN.querySelector(".n").textContent = nouveaux; tuileN.classList.toggle("chaude", nouveaux > 0); }
+
+    const nMasques = cartes.filter((c) => c.hidden).length;
+    const zone = document.getElementById("masques");
+    zone.hidden = nMasques === 0;
+    zone.querySelector("span").textContent =
+      nMasques + (nMasques > 1 ? " éléments masqués" : " élément masqué");
+  }
+
+  document.addEventListener("change", (e) => {
+    if (!e.target.matches(".carte .inscrit")) return;
+    const c = e.target.closest(".carte"), id = c.dataset.id;
+    if (e.target.checked) inscrits[id] = { ts: +c.dataset.ts || 0, html: c.outerHTML };
+    else delete inscrits[id];
+    ecrire(CLE_I, inscrits);
+    afficher();
+  });
+
+  const barre = document.getElementById("annuler");
+  let dernier = null, minuteur = null;
+  document.addEventListener("click", (e) => {
+    const bouton = e.target.closest(".effacer");
+    if (!bouton) return;
+    const id = bouton.closest(".carte").dataset.id;
+    dernier = { id, inscrit: inscrits[id] };
+    masques[id] = aujourdhui();
+    delete inscrits[id];
+    ecrire(CLE_M, masques); ecrire(CLE_I, inscrits);
+    afficher();
+    barre.hidden = false;
+    clearTimeout(minuteur);
+    minuteur = setTimeout(() => { barre.hidden = true; }, 7000);
+  });
+  barre.querySelector("button").addEventListener("click", () => {
+    if (!dernier) return;
+    delete masques[dernier.id];
+    if (dernier.inscrit) inscrits[dernier.id] = dernier.inscrit;
+    ecrire(CLE_M, masques); ecrire(CLE_I, inscrits);
+    dernier = null; barre.hidden = true;
+    afficher();
+  });
+  document.querySelector("#masques button").addEventListener("click", () => {
+    for (const c of cartes) delete masques[c.dataset.id];
+    ecrire(CLE_M, masques);
+    afficher();
+  });
+
+  afficher();
+})();
+"""
 
 
 def ecrire_page(belges, en_ligne, liste_alertes, nouveaux):
     maj = datetime.now(FUSEAU).strftime("%d/%m/%Y à %H:%M")
-    stats = [("Belgique", len(belges))]
+    stats = [("be", "Belgique", len(belges))]
     if INCLURE_EN_LIGNE:
-        stats.append(("En ligne", len(en_ligne)))
-    stats += [("Alertes", len(liste_alertes)), ("Nouveaux", len(nouveaux))]
+        stats.append(("ligne", "En ligne", len(en_ligne)))
+    stats += [("alertes", "Alertes", len(liste_alertes)), ("nouveaux", "Nouveaux", len(nouveaux))]
     tuiles = "".join(
-        f"<div class='tuile{' chaude' if nom == 'Nouveaux' and n else ''}'>"
+        f"<div class='tuile{' chaude' if cle == 'nouveaux' and n else ''}' data-compte='{cle}'>"
         f"<div class='n titre'>{n}</div><div class='l'>{nom}</div></div>"
-        for nom, n in stats
+        for cle, nom, n in stats
     )
-    sections = [section("En Belgique", [carte_tournoi(t, nouveaux) for t in belges],
-                        "Aucun tournoi trouvé en Belgique pour l'instant.")]
+    sections = [
+        section("inscrits", "Mes inscriptions", [],
+                "Coche « Inscrit » sur un tournoi pour le retrouver ici.", "inscriptions"),
+        section("be", "En Belgique", [carte_tournoi(t, nouveaux) for t in belges],
+                "Aucun tournoi trouvé en Belgique pour l'instant."),
+    ]
     if INCLURE_EN_LIGNE:
-        sections.append(section("En ligne · inscriptions ouvertes",
+        sections.append(section("ligne", "En ligne · inscriptions ouvertes",
                                 [carte_tournoi(t, nouveaux) for t in en_ligne],
                                 "Aucun tournoi en ligne trouvé."))
-    sections.append(section("Actus (alertes Google)", [carte_alerte(a, nouveaux) for a in liste_alertes],
+    sections.append(section("alertes", "Actus (alertes Google)",
+                            [carte_alerte(a, nouveaux) for a in liste_alertes],
                             "Rien dans les flux pour l'instant."))
 
     SORTIE.parent.mkdir(parents=True, exist_ok=True)
@@ -336,8 +490,12 @@ def ecrire_page(belges, en_ligne, liste_alertes, nouveaux):
 </div></header>
 <main><div class="cadre">
 {''.join(sections)}
+<p class="masques" id="masques" hidden><span></span> · <button type="button">Tout réafficher</button></p>
 </div></main>
-<footer>Données : <a href="https://www.start.gg">start.gg</a> et Google Alerts · mise à jour automatique chaque jour</footer>
+<div id="annuler" role="status" hidden><span>Masqué.</span><button type="button">Annuler</button></div>
+<footer>Données : <a href="https://www.start.gg">start.gg</a> et Google Alerts · mise à jour automatique chaque jour<br>
+Les inscriptions cochées et les éléments masqués sont mémorisés dans ce navigateur.</footer>
+<script>{SCRIPT}</script>
 </body></html>
 """, encoding="utf-8")
 
@@ -353,8 +511,9 @@ def main():
     belges = tournois(token, jeu_id, {"countryCode": "BE"})
     en_ligne = []
     if INCLURE_EN_LIGNE:
+        deja = {t["id"] for t in belges}
         en_ligne = [t for t in tournois(token, jeu_id, {"regOpen": True}, pages=3)
-                    if t.get("isOnline") and not hors_zone(t)]
+                    if t.get("isOnline") and not hors_zone(t) and t["id"] not in deja]
     liste_alertes = alertes()
 
     identifiants = {str(t["id"]) for t in belges + en_ligne} | {a["id"] for a in liste_alertes}
