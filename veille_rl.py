@@ -57,8 +57,6 @@ query($filtre: TournamentPageFilter, $page: Int, $parPage: Int, $jeu: [ID]!) {
   }
 }"""
 
-# Temporaire : garde un échantillon des épreuves dans data/ pour régler la détection
-DIAGNOSTIC = True
 
 
 # ---------- start.gg ----------
@@ -111,34 +109,15 @@ def cash_prize(nom):
     return bool(MOTIF_CASH.search(nom or ""))
 
 
-def _parcourir(objet, cle=""):
-    if isinstance(objet, dict):
-        for k, v in objet.items():
-            yield from _parcourir(v, k)
-    elif isinstance(objet, list):
-        for v in objet:
-            yield from _parcourir(v, cle)
-    else:
-        yield cle.lower(), objet
-
-
 def prix_renseigne(info):
-    """Prize money configuré par l'organisateur dans start.gg (prizingInfo, format JSON non documenté)."""
-    if isinstance(info, str):
-        try:
-            info = json.loads(info)
-        except ValueError:
-            return cash_prize(info)
-    if not info:
+    """Prize money d'une épreuve start.gg : activé par l'organisateur ET un montant supérieur à 0.
+    Les pourcentages 60/30/10 que start.gg pré-remplit par défaut ne comptent pas."""
+    if not isinstance(info, dict) or not info.get("enablePrizing"):
         return False
-    paires = list(_parcourir(info))
-    if any(("enable" in k or "active" in k) and v is False for k, v in paires):
-        return False
-    if any(isinstance(v, str) and cash_prize(v) for _, v in paires):
+    montants = [p.get("amount") for p in info.get("prizing") or [] if isinstance(p, dict)]
+    if (info.get("payoutTotal") or 0) > 0 or any((m or 0) > 0 for m in montants):
         return True
-    return any(isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
-               and any(m in k for m in ("amount", "value", "percent", "prize", "payout"))
-               for k, v in paires)
+    return bool(re.search(r"[$€£]\s?[1-9]|[1-9][0-9]*\s?[$€£]", info.get("markdown") or ""))
 
 
 def epreuves(t):
@@ -650,11 +629,6 @@ def main():
     etat, nouveaux = mettre_a_jour_etat(charger_etat(), identifiants, date.today())
 
     ecrire_page(belges, en_ligne, liste_alertes, nouveaux)
-    if DIAGNOSTIC:
-        echantillon = [{"nom": t["name"], "formats": formats_tournoi(t), "cash": cash_tournoi(t),
-                        "epreuves": epreuves(t)} for t in belges + en_ligne]
-        (DOSSIER / "data" / "diagnostic_epreuves.json").write_text(
-            json.dumps(echantillon, ensure_ascii=False, indent=1), encoding="utf-8")
     ETAT.parent.mkdir(parents=True, exist_ok=True)
     ETAT.write_text(json.dumps(etat, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{len(belges)} en Belgique, {len(en_ligne)} en ligne, "
