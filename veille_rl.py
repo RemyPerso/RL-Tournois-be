@@ -46,12 +46,19 @@ query($nom: String) {
   }
 }"""
 
+PAR_PAGE = 25
 Q_TOURNOIS = """
-query($filtre: TournamentPageFilter, $page: Int) {
-  tournaments(query: {perPage: 50, page: $page, sortBy: "startAt asc", filter: $filtre}) {
-    nodes { id name slug startAt isOnline city countryCode numAttendees }
+query($filtre: TournamentPageFilter, $page: Int, $parPage: Int, $jeu: [ID]!) {
+  tournaments(query: {perPage: $parPage, page: $page, sortBy: "startAt asc", filter: $filtre}) {
+    nodes {
+      id name slug startAt isOnline city countryCode numAttendees
+      events(filter: {videogameId: $jeu}) { name type teamRosterSize { minPlayers maxPlayers } prizingInfo }
+    }
   }
 }"""
+
+# Temporaire : garde un échantillon des épreuves dans data/ pour régler la détection
+DIAGNOSTIC = True
 
 
 # ---------- start.gg ----------
@@ -101,10 +108,64 @@ def formats(nom):
 
 
 def cash_prize(nom):
-    return bool(MOTIF_CASH.search(nom))
+    return bool(MOTIF_CASH.search(nom or ""))
 
 
-def tournois(token, jeu_id, filtre_extra, pages=2):
+def _parcourir(objet, cle=""):
+    if isinstance(objet, dict):
+        for k, v in objet.items():
+            yield from _parcourir(v, k)
+    elif isinstance(objet, list):
+        for v in objet:
+            yield from _parcourir(v, cle)
+    else:
+        yield cle.lower(), objet
+
+
+def prix_renseigne(info):
+    """Prize money configuré par l'organisateur dans start.gg (prizingInfo, format JSON non documenté)."""
+    if isinstance(info, str):
+        try:
+            info = json.loads(info)
+        except ValueError:
+            return cash_prize(info)
+    if not info:
+        return False
+    paires = list(_parcourir(info))
+    if any(("enable" in k or "active" in k) and v is False for k, v in paires):
+        return False
+    if any(isinstance(v, str) and cash_prize(v) for _, v in paires):
+        return True
+    return any(isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+               and any(m in k for m in ("amount", "value", "percent", "prize", "payout"))
+               for k, v in paires)
+
+
+def epreuves(t):
+    return t.get("events") or []
+
+
+def formats_tournoi(t):
+    """Formats d'après l'intitulé du tournoi, puis chaque épreuve : son nom, sinon la taille des équipes."""
+    trouves = set(formats(t["name"]))
+    for e in epreuves(t):
+        f = set(formats(e.get("name") or ""))
+        if not f:
+            taille = (e.get("teamRosterSize") or {}).get("minPlayers")
+            if taille in (1, 2, 3):
+                f = {str(taille)}
+            elif not e.get("teamRosterSize") and e.get("type") == 1:  # épreuve individuelle
+                f = {"1"}
+        trouves |= f
+    return sorted(trouves)
+
+
+def cash_tournoi(t):
+    return cash_prize(t["name"]) or any(
+        cash_prize(e.get("name")) or prix_renseigne(e.get("prizingInfo")) for e in epreuves(t))
+
+
+def tournois(token, jeu_id, filtre_extra, pages=4):
     debut = int(time.time())
     filtre = {
         "upcoming": True,
@@ -115,9 +176,10 @@ def tournois(token, jeu_id, filtre_extra, pages=2):
     }
     resultats = []
     for page in range(1, pages + 1):
-        noeuds = gql(token, Q_TOURNOIS, {"filtre": filtre, "page": page})["tournaments"]["nodes"] or []
+        variables = {"filtre": filtre, "page": page, "parPage": PAR_PAGE, "jeu": [jeu_id]}
+        noeuds = gql(token, Q_TOURNOIS, variables)["tournaments"]["nodes"] or []
         resultats += noeuds
-        if len(noeuds) < 50:
+        if len(noeuds) < PAR_PAGE:
             break
     return resultats
 
@@ -340,7 +402,7 @@ def carte_tournoi(t, nouveaux):
         lieu,
         f"{inscrits} inscrits" if inscrits else "",
     ] if x)
-    fmts, cash = formats(t["name"]), cash_prize(t["name"])
+    fmts, cash = formats_tournoi(t), cash_tournoi(t)
     tags = "<span class='tag nouveau'>Nouveau</span>" if str(t["id"]) in nouveaux else ""
     tags += "".join(f"<span class='tag format'>{f}v{f}</span>" for f in fmts)
     tags += "<span class='tag cash'>Cash prize</span>" if cash else ""
@@ -580,7 +642,7 @@ def main():
     en_ligne = []
     if INCLURE_EN_LIGNE:
         deja = {t["id"] for t in belges}
-        en_ligne = [t for t in tournois(token, jeu_id, {"regOpen": True}, pages=3)
+        en_ligne = [t for t in tournois(token, jeu_id, {"regOpen": True}, pages=6)
                     if t.get("isOnline") and not hors_zone(t) and t["id"] not in deja]
     liste_alertes = alertes()
 
@@ -588,6 +650,11 @@ def main():
     etat, nouveaux = mettre_a_jour_etat(charger_etat(), identifiants, date.today())
 
     ecrire_page(belges, en_ligne, liste_alertes, nouveaux)
+    if DIAGNOSTIC:
+        echantillon = [{"nom": t["name"], "formats": formats_tournoi(t), "cash": cash_tournoi(t),
+                        "epreuves": epreuves(t)} for t in belges + en_ligne]
+        (DOSSIER / "data" / "diagnostic_epreuves.json").write_text(
+            json.dumps(echantillon, ensure_ascii=False, indent=1), encoding="utf-8")
     ETAT.parent.mkdir(parents=True, exist_ok=True)
     ETAT.write_text(json.dumps(etat, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{len(belges)} en Belgique, {len(en_ligne)} en ligne, "
