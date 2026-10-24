@@ -10,6 +10,8 @@ Page mise à jour automatiquement chaque jour : tournois Rocket League à venir 
 - `data/deja_vus.json` mémorise ce qui a déjà été vu, pour l'étiquette « Nouveau ».
 - Sur la page, la case « Inscrit » range un tournoi dans « Mes inscriptions » et la croix masque
   un élément pour de bon. Ces choix sont mémorisés dans le navigateur (localStorage), pas dans le dépôt.
+- Filtres 1v1 / 2v2 / 3v3 / Tous (1v1 par défaut) et Cash prize, d'après l'intitulé du tournoi :
+  sans format indiqué, un tournoi apparaît dans les trois ; « Cash prize » = $, € ou £ dans le nom.
 
 ## Réglages
 

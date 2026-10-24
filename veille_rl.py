@@ -87,6 +87,23 @@ def hors_zone(t):
     return bool(MOTIF_EXCLU.search(t["name"]))
 
 
+# Format repéré dans l'intitulé : « 1v1 », « 2 vs 2 », « 3x3 » ou l'abréviation « 2s ».
+# Sans indication, le tournoi est rangé dans les trois formats.
+MOTIF_FORMAT = re.compile(r"(?<![0-9])([123])\s*(?:v|vs|x)\s*([123])(?![0-9])", re.IGNORECASE)
+MOTIF_FORMAT_S = re.compile(r"(?<![0-9A-Za-z$€£])([123])s\b", re.IGNORECASE)
+MOTIF_CASH = re.compile(r"[$€£]|cash ?prize", re.IGNORECASE)
+
+
+def formats(nom):
+    trouves = {a for a, b in MOTIF_FORMAT.findall(nom) if a == b}
+    trouves |= set(MOTIF_FORMAT_S.findall(nom))
+    return sorted(trouves)
+
+
+def cash_prize(nom):
+    return bool(MOTIF_CASH.search(nom))
+
+
 def tournois(token, jeu_id, filtre_extra, pages=2):
     debut = int(time.time())
     filtre = {
@@ -252,6 +269,19 @@ h2 { font-size:19px; text-transform:uppercase; letter-spacing:1px; margin:0 0 10
 .nouveau { background:rgba(255,138,31,.15); color:var(--orange); }
 .ligne { background:rgba(34,195,166,.12); color:var(--vert); }
 .be { background:rgba(47,140,255,.15); color:var(--bleu); }
+.format { background:rgba(232,238,245,.08); color:var(--texte); }
+.cash { background:rgba(255,200,61,.14); color:#ffc83d; }
+.carte.filtre-off { display:none; }
+.filtres { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+           margin:26px -16px 0; padding:10px 16px; background:rgba(11,17,25,.94); border-bottom:1px solid var(--bord); }
+.filtres .groupe { display:flex; background:var(--carte); border:1px solid var(--bord); border-radius:8px; padding:3px; }
+.filtres button { background:none; border:none; color:var(--doux); font:inherit; font-size:13px; font-weight:700;
+                  padding:6px 12px; border-radius:6px; cursor:pointer; }
+.filtres .groupe button[aria-pressed=true] { background:var(--bleu); color:#fff; }
+.filtres .bouton-cash { border:1px solid var(--bord); border-radius:8px; padding:8px 12px; }
+.filtres .bouton-cash[aria-pressed=true] { color:#ffc83d; border-color:#ffc83d; background:rgba(255,200,61,.12); }
+.filtres button:focus-visible { outline:2px solid var(--bleu); outline-offset:2px; }
+.filtres .aide { color:var(--doux); font-size:12px; margin-left:auto; }
 .actions { display:flex; align-items:center; gap:4px; }
 .coche { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--doux);
          border:1px solid var(--bord); border-radius:6px; padding:5px 9px; cursor:pointer; user-select:none; white-space:nowrap; }
@@ -281,6 +311,7 @@ footer a { color:var(--doux); }
   .nom { white-space:normal; }
   .tags { justify-content:flex-start; margin-left:66px; }
   .actions { margin-left:auto; }
+  .filtres .aide { display:none; }
 }
 """
 
@@ -309,9 +340,13 @@ def carte_tournoi(t, nouveaux):
         lieu,
         f"{inscrits} inscrits" if inscrits else "",
     ] if x)
+    fmts, cash = formats(t["name"]), cash_prize(t["name"])
     tags = "<span class='tag nouveau'>Nouveau</span>" if str(t["id"]) in nouveaux else ""
+    tags += "".join(f"<span class='tag format'>{f}v{f}</span>" for f in fmts)
+    tags += "<span class='tag cash'>Cash prize</span>" if cash else ""
     tags += "<span class='tag ligne'>En ligne</span>" if t.get("isOnline") else "<span class='tag be'>BE</span>"
-    return (f"<div class='carte' data-id='{attr(t['id'])}' data-ts='{t.get('startAt') or 0}'>"
+    return (f"<div class='carte' data-id='{attr(t['id'])}' data-ts='{t.get('startAt') or 0}' "
+            f"data-formats='{' '.join(fmts) or '1 2 3'}' data-cash='{1 if cash else 0}'>"
             f"<a class='lien' href='https://www.start.gg/{attr(t['slug'])}'>{bloc_date(dt)}"
             f"<div class='infos'><div class='nom'>{html.escape(t['name'])}</div>"
             f"<div class='meta'>{html.escape(meta)}</div></div></a>"
@@ -343,11 +378,13 @@ def section(cle, titre, cartes, vide, classe=""):
 # Inscriptions et masquages : mémorisés dans le navigateur (localStorage), la page restant statique.
 SCRIPT = """
 (() => {
-  const CLE_I = "rl-inscrits", CLE_M = "rl-masques";
+  const CLE_I = "rl-inscrits", CLE_M = "rl-masques", CLE_F = "rl-filtres";
   const lire = (k) => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch (e) { return {}; } };
   const ecrire = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   const aujourdhui = () => new Date().toISOString().slice(0, 10);
   let inscrits = lire(CLE_I), masques = lire(CLE_M);
+  const filtres = Object.assign({ format: "1", cash: false }, lire(CLE_F));
+  if (!["1", "2", "3", "tous"].includes(filtres.format)) filtres.format = "1";
 
   // Nettoyage : tournois terminés (plus de 24 h après le début) et masquages de plus de 6 mois
   const maintenant = Date.now() / 1000;
@@ -387,15 +424,30 @@ SCRIPT = """
     [...listeInscrits.children].sort((a, b) => (+a.dataset.ts || 0) - (+b.dataset.ts || 0))
       .forEach((c) => listeInscrits.append(c));
 
+    // Filtres : uniquement sur les tournois des sections Belgique et En ligne
+    for (const c of document.querySelectorAll("section[data-section=be] .carte, section[data-section=ligne] .carte")) {
+      const fmts = (c.dataset.formats || "1 2 3").split(" ");
+      const ok = (filtres.format === "tous" || fmts.includes(filtres.format)) && (!filtres.cash || c.dataset.cash === "1");
+      c.classList.toggle("filtre-off", !ok);
+    }
+    listeInscrits.querySelectorAll(".filtre-off").forEach((c) => c.classList.remove("filtre-off"));
+    document.querySelectorAll(".filtres .groupe button").forEach((b) =>
+      b.setAttribute("aria-pressed", String(b.dataset.format === filtres.format)));
+    document.querySelector(".bouton-cash").setAttribute("aria-pressed", String(filtres.cash));
+
     for (const s of document.querySelectorAll("section[data-section]")) {
-      const n = s.querySelectorAll(".liste > .carte:not([hidden])").length;
+      const n = s.querySelectorAll(".liste > .carte:not([hidden]):not(.filtre-off)").length;
+      const masquesParFiltre = s.querySelectorAll(".liste > .carte.filtre-off:not([hidden])").length;
       s.querySelector(".compte").textContent = n;
-      s.querySelector(".vide").hidden = n > 0;
+      const vide = s.querySelector(".vide");
+      vide.dataset.defaut = vide.dataset.defaut || vide.textContent;
+      vide.textContent = masquesParFiltre ? "Aucun tournoi ne correspond aux filtres ici." : vide.dataset.defaut;
+      vide.hidden = n > 0;
       const tuile = document.querySelector(`.tuile[data-compte="${s.dataset.section}"] .n`);
       if (tuile) tuile.textContent = n;
     }
     const nouveaux = document.querySelectorAll(
-      "section:not([data-section=inscrits]) .carte:not([hidden]) .nouveau").length;
+      "section:not([data-section=inscrits]) .carte:not([hidden]):not(.filtre-off) .nouveau").length;
     const tuileN = document.querySelector(".tuile[data-compte=nouveaux]");
     if (tuileN) { tuileN.querySelector(".n").textContent = nouveaux; tuileN.classList.toggle("chaude", nouveaux > 0); }
 
@@ -436,6 +488,14 @@ SCRIPT = """
     if (dernier.inscrit) inscrits[dernier.id] = dernier.inscrit;
     ecrire(CLE_M, masques); ecrire(CLE_I, inscrits);
     dernier = null; barre.hidden = true;
+    afficher();
+  });
+  document.querySelector(".filtres").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.format) filtres.format = b.dataset.format;
+    else filtres.cash = !filtres.cash;
+    ecrire(CLE_F, filtres);
     afficher();
   });
   document.querySelector("#masques button").addEventListener("click", () => {
@@ -489,7 +549,15 @@ def ecrire_page(belges, en_ligne, liste_alertes, nouveaux):
   <div class="tuiles">{tuiles}</div>
 </div></header>
 <main><div class="cadre">
-{''.join(sections)}
+{sections[0]}
+<div class="filtres" role="toolbar" aria-label="Filtres des tournois">
+  <div class="groupe" role="group" aria-label="Format">
+    <button type="button" data-format="1">1v1</button><button type="button" data-format="2">2v2</button><button type="button" data-format="3">3v3</button><button type="button" data-format="tous">Tous</button>
+  </div>
+  <button type="button" class="bouton-cash" aria-pressed="false">Cash prize</button>
+  <span class="aide">Sans format indiqué, un tournoi apparaît dans les trois.</span>
+</div>
+{''.join(sections[1:])}
 <p class="masques" id="masques" hidden><span></span> · <button type="button">Tout réafficher</button></p>
 </div></main>
 <div id="annuler" role="status" hidden><span>Masqué.</span><button type="button">Annuler</button></div>
