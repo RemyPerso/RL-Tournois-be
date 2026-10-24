@@ -1,0 +1,737 @@
+[
+ {
+  "nom": "Da Bois Rocket League Champion Road 2v2 Tournament (9)",
+  "formats": [
+   "2"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "DBCR 2v2 Tournament",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 2,
+     "maxPlayers": 2
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": "🥇 First Place: The tournament winner will receive an exclusive Champion role in the Da Bois Discord server and be officially recognized as the DBCR 2S CHAMPION (9).\n\n🥈 Second Place: No prize.\n\n🥉 Third Place: No prize.",
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 0,
+       "description": "Will get a special role in the Discord Server"
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30,
+       "amount": 0,
+       "description": "No Prize"
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10,
+       "amount": 0,
+       "description": "No Prize"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "AJES 2v2 Showdown Rocket League",
+  "formats": [
+   "2"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "AJES 2v2 Showdown",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 2,
+     "maxPlayers": 2
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 20
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30,
+       "amount": 10
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "$30 Eternal Ronin Esports Invitational",
+  "formats": [
+   "2"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "ERE Invitational",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 2,
+     "maxPlayers": 2
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": "Prize Distribution\n\nThe Eternal Ronin Esports Invitational will feature a $30 total prize pool.\n\n1st Place: $30 total — $15 per player\n\n2nd Place: No cash prize\n\n3rd Place: No cash prize\n\nThe full prize pool will be awarded to the tournament champions.",
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 30,
+       "description": "$15 For Each Player"
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30,
+       "amount": 0,
+       "description": "No Prize"
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10,
+       "amount": 0,
+       "description": "No Prize"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "$10 Spart 1v1 Tournament & $5 YouTube Giveaway #4",
+  "formats": [
+   "1"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "$10 Spartan 1v1 Twitch Tourney & $5 YouTube Giveaway",
+    "type": 1,
+    "teamRosterSize": null,
+    "prizingInfo": {
+     "enablePrizing": false,
+     "markdown": null,
+     "payoutType": null,
+     "payoutTotal": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Jurassic Cup Rising 26",
+  "formats": [
+   "3"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "Jurassic Cup Rising 26",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 10
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30,
+       "amount": 6
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10,
+       "amount": 4
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Bogleason Rocket Regional 3",
+  "formats": [
+   "3"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "[NEW] Bogleason Rocket Regional 3",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": "Please create a ticket in the Glizzy Gang server to receive your prize. Either Maypo, Bo, or another admin will facilitate the payout.",
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 300
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30,
+       "amount": 125
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10,
+       "amount": 75
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Double Ope Halloween 2v2 Clash",
+  "formats": [
+   "2"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "Double Ope Halloween 2v2 Clash",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 2,
+     "maxPlayers": 2
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 50
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "amount": 25,
+       "description": "Best haloween themed car"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Rocket League 2v2",
+  "formats": [
+   "2"
+  ],
+  "cash": false,
+  "epreuves": [
+   {
+    "name": "Main Event",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 2,
+     "maxPlayers": 2
+    },
+    "prizingInfo": {
+     "enablePrizing": false,
+     "markdown": null,
+     "payoutType": null,
+     "payoutTotal": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "misty cup | $100 1v1",
+  "formats": [
+   "1"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "Mistys $100 1v1",
+    "type": 1,
+    "teamRosterSize": null,
+    "prizingInfo": {
+     "enablePrizing": false,
+     "markdown": null,
+     "payoutType": null,
+     "payoutTotal": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Club Championship - Middle East & North Africa Club Kick-Off Open",
+  "formats": [
+   "3"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "3v3 Bracket - MENA Kick-Off Open",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": "There are no prize money nor in-game title awards for the Club Kick-Off Open.",
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 0,
+       "description": "Qualification to Club Championship Kick-Off LAN & Qualification to Club League"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Club Championship - South America Club Kick-Off Open",
+  "formats": [
+   "3"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "3v3 Bracket - South America Kick-off Open",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 0,
+       "description": "Qualification to Club Championship Kick-off LAN"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "1v1 RushFall! - Monthly#1",
+  "formats": [
+   "1"
+  ],
+  "cash": false,
+  "epreuves": [
+   {
+    "name": "1v1 RushFall! - Monthly #1",
+    "type": 1,
+    "teamRosterSize": null,
+    "prizingInfo": {
+     "enablePrizing": false,
+     "markdown": null,
+     "payoutType": null,
+     "payoutTotal": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Redirect 3v3 Monthly #41 - £100",
+  "formats": [
+   "3"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "Redirect 3v3 Monthly #41",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 70
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30,
+       "amount": 30
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "BO5 | 2v2 Tournament | GTA VI (Prize)",
+  "formats": [
+   "2"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "2v2 Tournament | GTA VI (Prize)",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 2,
+     "maxPlayers": 2
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "percentage",
+     "payoutTotal": 0,
+     "markdown": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Club Championship - Europe Club Kick-Off Open",
+  "formats": [
+   "3"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "3v3 Bracket - Europe Kick-Off Open",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": "There are no prize money nor in-game title awards for the Club Kick-Off Open.",
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 0,
+       "description": "Qualification to Club Championship Kick-Off LAN & Qualification to Club League"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Collegiate West Coast Series | Open Qualifier #3",
+  "formats": [
+   "3"
+  ],
+  "cash": false,
+  "epreuves": [
+   {
+    "name": "Open Qualifier #3",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": false,
+     "markdown": null,
+     "payoutType": null,
+     "payoutTotal": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "€100 [EU] Rocket Rush X Gamrly | Season 3 Europe Series | Qualifier 1",
+  "formats": [
+   "3"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "Rocket Rush | Season 3 Europe Series | Qualifier 1",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 70
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30,
+       "amount": 30
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Jurassic Cup 26",
+  "formats": [
+   "3"
+  ],
+  "cash": true,
+  "epreuves": [
+   {
+    "name": "Jurassic Cup 26",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": true,
+     "payoutType": "fixedAmount",
+     "payoutTotal": null,
+     "markdown": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60,
+       "amount": 18
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30,
+       "amount": 10
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10,
+       "amount": 7
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "nom": "Collegiate West Coast Series | Last Chance Qualifier",
+  "formats": [
+   "3"
+  ],
+  "cash": false,
+  "epreuves": [
+   {
+    "name": "Last Chance Qualifier",
+    "type": 5,
+    "teamRosterSize": {
+     "minPlayers": 3,
+     "maxPlayers": 3
+    },
+    "prizingInfo": {
+     "enablePrizing": false,
+     "markdown": null,
+     "payoutType": null,
+     "payoutTotal": null,
+     "prizing": [
+      {
+       "id": 0,
+       "placement": 1,
+       "percent": 60
+      },
+      {
+       "id": 1,
+       "placement": 2,
+       "percent": 30
+      },
+      {
+       "id": 2,
+       "placement": 3,
+       "percent": 10
+      }
+     ]
+    }
+   }
+  ]
+ }
+]
