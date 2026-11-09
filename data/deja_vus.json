@@ -1,5 +1,5 @@
 {
- "derniere_execution": "2026-11-08T12:54+01:00",
+ "derniere_execution": "2026-11-09T14:51+01:00",
  "vus": {
   "844295": "2026-11-06",
   "896041": "2026-10-09",
@@ -43,8 +43,11 @@
   "971966": "2026-11-05",
   "972829": "2026-11-08",
   "972858": "2026-11-08",
+  "973180": "2026-11-09",
+  "973311": "2026-11-09",
   "alerte:getbrakt.fr/jeux/rocket-league": "2026-10-09",
   "alerte:oazis.app/evenements/tournoi-rocket-league-le-lamentin": "2026-11-04",
+  "alerte:reddit.com/r/RocketLeague/comments/1xqmalr/ssl_in_plat_1v1?tl=fr": "2026-11-09",
   "alerte:reddit.com/r/RocketLeagueEsports/comments/1xkja81/why_was_prozy_invited_to_the_1v1_tournament_was?tl=fr": "2026-11-01",
   "alerte:rtbf.be/article/esport-rocket-league-le-belge-atow-champion-du-monde-en-titre-rejoint-l-equipe-de-squeezie-11807283": "2026-10-29",
   "alerte:rtbf.be/article/qui-est-atow-le-belge-de-19-ans-champion-du-monde-d-esport-qui-vient-de-rejoindre-l-equipe-de-squeezie-11807583": "2026-10-31",
@@ -53,6 +56,7 @@
   "alerte:tiktok.com/@nypstv/video/7696145220886465814": "2026-10-09",
   "alerte:tiktok.com/@rl.kairo/video/7698796891567377696": "2026-10-22",
   "alerte:x.com/ParlonsRL/status/2111788468703559815": "2026-10-21",
+  "alerte:youtube.com/live/fryaH1hhZlA?pp=SAFgAXgB": "2026-11-09",
   "alerte:youtube.com/watch?v=7uJgczr653A": "2026-10-27",
   "alerte:youtube.com/watch?v=BjdfQXzXuxY": "2026-10-23",
   "alerte:youtube.com/watch?v=N6HE09-F6BA": "2026-10-21",
